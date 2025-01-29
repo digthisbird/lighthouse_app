@@ -5,10 +5,11 @@ import pygame
 
 class JengaTower:
     def __init__(self):
-        self.blocks = []  # Initialize tower blocks
+        self.blocks = blocks  # Initialize tower blocks
 
     def initialize_tower(self):
         # Add blocks to the tower in the standard Jenga arrangement
+        blocks == 54
 
     def remove_block(self, row, block):
         # Logic to remove a block from the tower
