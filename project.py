@@ -177,7 +177,16 @@ def main():
     # Set up display
     width, height = 800, 600
     screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("Card and Dice Game")
+    pygame.display.set_caption("Solo RPG Helper")
+
+    icon = pygame.image.load(os.path.join("Lighthouse.png"))
+    pygame.display.set_icon(icon)
+
+    #set bg image
+    bg = pygame.image.load(os.path.join("map_bg.jpg"))
+
+    #scale bg
+    bg = pygame.transform.scale(bg, (width, height))
 
     # Initialize the dice roller and card picker
     dice_roller = DiceRoller(screen, width, height)
@@ -186,11 +195,14 @@ def main():
     # Main game loop
     running = True
     while running:
-        screen.fill(card_picker.WHITE)
+        screen.blit(bg, (0,0))
 
         # Draw the dice and button
         dice_roller.draw_dice()
         dice_roller.draw_button()
+
+        #Draw the card button
+        card_picker.draw_button()
 
         # Handle events for dice and card picking
         for event in pygame.event.get():
