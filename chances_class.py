@@ -31,7 +31,7 @@ class Chances:
         rounds = 0
         while total_jenga_dice > 0:
             rounds += 1
-            rolled_results = [random.randint(1,6) for _ in range(total_dice)]
+            rolled_results = [random.randint(1,6) for _ in range(total_jenga_dice)]
             ones_count = rolled_results.count(1)
             total_jenga_dice -= ones_count
 
