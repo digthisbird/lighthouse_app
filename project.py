@@ -1,13 +1,3 @@
-# App that tracks the different elements needed to play a solo TTRPG
-# Elements include a deck of cards, a D6, a coin, and a deck of cards, plus tokens to mark
-# App should have a visual element that responds to certain commands
-
-
-#1- Roll d6
-#2 Pull cards equal to the number rolled, one by one.
-#3 Follow the instruction of each card in your journal
-#4 Enter your log for the week
-#5 if not dead, restart week
 import pygame
 import random
 import os
@@ -60,6 +50,7 @@ class CardPicker:
         self.draw_start_time = None  # Time to start drawing cards from
         self.draw_delay = 500  # Delay in milliseconds between drawing cards
         self.used_cards = []
+        self.storage_cards = []
 
     def draw_message(self):
         if self.message and pygame.time.get_ticks() < self.message_timer + self.message_duration:
@@ -81,7 +72,27 @@ class CardPicker:
         else:
             pygame.draw.rect(self.screen, self.button_color, self.button_rect)
         self.draw_text("Draw a Card", self.button_x + self.button_width // 2, self.button_y + self.button_height // 2)
+       
+    def draw_storage_area(self):
+        #save drawn aces and kings in a separate area 
+        storage_x = 50
+        storage_y = self.height - 200
+        available_width = self.width - 100
+        num_cards = len(self.storage_cards)
 
+        if num_cards > 0:
+            card_width = 150
+            min_spacing = 10
+            dynamic_spacing = max(min_spacing, (available_width / num_cards))
+            
+
+            for i, card_key in enumerate(self.storage_cards):
+                x_position = storage_x + i * dynamic_spacing
+                if x_position > (self.width - card_width):
+                    x_position = (self.width - card_width) -((num_cards - i - 1) * (card_width + min_spacing))
+
+                self.screen.blit(self.card_images[card_key], (x_position, storage_y))
+   
     def draw_cards(self):
         """Draw the cards one by one with a delay between each card."""
         card_row_y = 400
@@ -90,29 +101,34 @@ class CardPicker:
 
         for i, card_key in enumerate(self.cards_drawn):
             self.screen.blit(self.card_images[card_key], (x_offset + 150 * i, card_row_y))
+        
 
     def handle_event(self, event):
         """Handle events for quitting and drawing cards on button click."""
         if event.type == pygame.QUIT:
             return False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.button_rect.collidepoint(pygame.mouse.get_pos()):
-                if self.num_cards == 0:
-                    self.message = "Roll the dice to start the week!"
-                    self.message_timer = pygame.time.get_ticks()
-                elif len(self.cards_drawn) >= self.num_cards:
-                    self.message = "No more cards can be drawn."
-                    self.message_timer = pygame.time.get_ticks()
-                else:
-                    available_cards = [key for key in self.card_images.keys() if key not in self.used_cards]
-                    if not available_cards:
-                        self.message = "All cards have been drawn!"
+                if self.button_rect.collidepoint(pygame.mouse.get_pos()):
+                    if self.num_cards == 0:
+                        self.message = "Roll the dice to start the week!"
                         self.message_timer = pygame.time.get_ticks()
-                        return True
-                    card_key = random.choice(available_cards)
-                    self.cards_drawn.append(card_key)
-                    self.used_cards.append(card_key)
-                    self.message = ""
+                    elif len(self.cards_drawn) >= self.num_cards:
+                        self.message = "No more cards can be drawn."
+                        self.message_timer = pygame.time.get_ticks()
+                    else:
+                        available_cards = [key for key in self.card_images.keys() if key not in self.used_cards]
+                        if not available_cards:
+                            self.message = "All cards have been drawn!"
+                            self.message_timer = pygame.time.get_ticks()
+                            return True
+                        card_key = random.choice(available_cards)
+                        self.cards_drawn.append(card_key)
+                        self.used_cards.append(card_key) #ensure the card is added to the used cards list.
+
+                        rank = card_key[:-1]
+                        if rank in ['A', 'K']:
+                            self.storage_cards.append(card_key)
+                        self.message = ""
         return True
 
 
@@ -191,7 +207,7 @@ class DiceRoller:
                 rolled_number = self.roll_dice()
                 self.card_picker.num_cards = rolled_number  # Set the number of cards to draw
                 self.card_picker.cards_drawn = []  # Reset drawn cards when new roll happens
-                self.card_picker.used_cards = []   # Reset used cards
+                
                 return True  # Continue the game
         return False
 
@@ -230,7 +246,7 @@ class CoinFlipper:
 
     def draw_text(self, text, x, y, font):
         """Helper function to draw text on the screen."""
-        text_obj = font.render(text, True, (255, 255, 255))
+        text_obj = font.render(text, True, self.WHITE)
         text_rect = text_obj.get_rect(center=(x, y))
         self.screen.blit(text_obj, text_rect)
 
@@ -250,9 +266,9 @@ class CoinFlipper:
     def draw_coin(self):
     #Draw the coin's current side on the screen if it's been flipped.""
         if self.current_side:
-            self.screen.blit(self.coin_images[self.current_side], (self.width - 150, 230))
+            self.screen.blit(self.coin_images[self.current_side], (self.width - 200, 230))
             # Draw the text result under the coin
-            self.draw_text(self.current_side.capitalize(), self.width - 150, 330, self.result_font)
+            self.draw_text(self.current_side.capitalize(), self.width - 150, 350, self.result_font)
 
     def handle_event(self, event):
         """Handle the coin flip event on button click."""
@@ -261,6 +277,90 @@ class CoinFlipper:
                 self.flip_coin()
                 return True
         return True
+
+class JengaTower:
+    def __init__(self, screen, width, height):
+        self.screen = screen
+        self.width = width
+        self.height = height
+      
+        self.WHITE = (255, 255, 255)
+        self.BEIGE = (166, 147, 126)
+        self.BLACK = (0, 0, 0)
+        self.TRANSPARENT_BEIGE = (166, 147, 126, 150)
+
+        self.button_color = self.BEIGE
+        self.button_hover_color = self.BLACK
+        self.button_width = 200
+        self.button_height = 50
+        self.button_x = 50
+        self.button_y = 50
+        self.button_rect = pygame.Rect(self.button_x, self.button_y, self.button_width, self.button_height)
+        self.results = ""
+
+        self.area_color = self.TRANSPARENT_BEIGE
+        self.area_rect_width = 250
+        self.area_rect_height = 300
+        self.area_rect_x = 25
+        self.area_rect_y = 50
+        self.area_rect =pygame.Rect(self.area_rect_x, self.area_rect_y, self.area_rect_width, self.area_rect_height)
+
+        self.font = pygame.font.SysFont(None, 24)
+        self.button_font = pygame.font.SysFont(None, 24)
+
+        self.total_jenga_dice = 100
+        self.rounds = 0
+
+    def draw_text(self, text, x, y, font):
+        text_obj = self.font.render(text, True, self.WHITE)
+        text_rect = text_obj.get_rect(center=(x, y))
+        self.screen.blit(text_obj, text_rect)
+
+    def draw_button(self):
+        mouse_pos = pygame.mouse.get_pos()
+        if self.button_rect.collidepoint(mouse_pos):
+            pygame.draw.rect(self.screen, self.BLACK, self.button_rect)
+        else:
+            pygame.draw.rect(self.screen, self.BEIGE, self.button_rect)
+        self.draw_text("Pull From the Tower", self.button_x + self.button_width // 2, self.button_y + self.button_height // 2, self.font)
+
+    def draw_area(self):
+        pygame.draw.rect(self.screen, self.BEIGE, self.area_rect, pygame.SRCALPHA)
+    
+    def draw(self):
+        self.draw_area()
+        self.draw_button()
+        lines = self.results.split('\n')
+        y_offset = self.area_rect_y + self.button_height + 10
+        for line in lines:
+            text = self.font.render(line, True, self.WHITE)
+            self.screen.blit(text, (self.area_rect_x + 10, y_offset))
+            y_offset += 20
+
+
+    def roll_jenga_dice(self):
+        if self.total_jenga_dice > 0:
+            self.rounds += 1
+            self.results = f"Roll {self.rounds}: Rolling {self.total_jenga_dice} Dice\n"
+
+            rolled_results = [random.randint(1,6) for _ in range(self.total_jenga_dice)]
+            ones_count = rolled_results.count(1)
+
+            self.results += f"Removing {ones_count} chances\n"
+            
+            self.total_jenga_dice -= ones_count
+            self.results += f"Chances left: {self.total_jenga_dice}\n\n"
+
+            if self.total_jenga_dice <= 0:
+                self.results += f"\nGame Over in {self.rounds} pulls!"
+            else:
+                self.results += ""
+        
+        
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.button_rect.collidepoint(pygame.mouse.get_pos()):
+                self.roll_jenga_dice()
 
 
 # Main game loop
@@ -286,10 +386,12 @@ def main():
     card_picker = CardPicker(screen, width, height)
     dice_roller = DiceRoller(screen, width, height, card_picker)
     coin_flipper = CoinFlipper(screen, width, height)
+    jenga_tower = JengaTower(screen, width, height)
 
     round_counter = 0
     round_font = pygame.font.SysFont(None, 36)
     
+
     def draw_round_counter():
         round_text = round_font.render(f"Week: {round_counter}", True, (255, 255, 255))
         screen.blit(round_text, (width - 150, 30))
@@ -305,25 +407,33 @@ def main():
 
         #Draw the card button
         card_picker.draw_button()
-
         card_picker.draw_message()
 
         coin_flipper.draw_button()
         coin_flipper.draw_coin()
 
+        jenga_tower.draw()
+        
+
         # Handle events for dice and card picking
         for event in pygame.event.get():
-            if dice_roller.handle_event(event):
-                round_counter += 1
-            running = card_picker.handle_event(event)
-            running = coin_flipper.handle_event(event)
             if event.type == pygame.QUIT:
                 running = False
+            if dice_roller.handle_event(event):
+                round_counter += 1
+            if card_picker.handle_event(event):
+                pass
+            coin_flipper.handle_event(event)
+            jenga_tower.handle_event(event)
+            
+        card_picker.draw_message()
 
         # Draw the cards with delay
-        card_picker.draw_cards()
+        if card_picker.cards_drawn:
+            card_picker.draw_cards()
 
         draw_round_counter()
+        card_picker.draw_storage_area()
 
         # Update the display
         pygame.display.flip()
