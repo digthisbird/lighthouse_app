@@ -225,19 +225,19 @@ class CoinFlipper:
 
         # Load the coin images (heads and tails)
         self.coin_images = {
-            "heads": pygame.transform.scale(pygame.image.load(os.path.join(self.coin_folder, "heads.png")), (100, 100)),
-            "tails": pygame.transform.scale(pygame.image.load(os.path.join(self.coin_folder, "tails.png")), (100, 100))
+            "heads": pygame.transform.scale(pygame.image.load(os.path.join(self.coin_folder, "heads.png")), (75, 75)),
+            "tails": pygame.transform.scale(pygame.image.load(os.path.join(self.coin_folder, "tails.png")), (75, 75))
         }
         
         self.current_side = None  # No coin flip result initially
-        
+        #width - self.button_width - 40
         # Button settings for flipping the coin
         self.button_color = self.BEIGE
         self.button_hover_color = self.BLACK
-        self.button_width = 200
+        self.button_width = 150
         self.button_height = 50
-        self.button_x = width - self.button_width - 50
-        self.button_y = 150
+        self.button_x = 70
+        self.button_y = 225
         self.button_rect = pygame.Rect(self.button_x, self.button_y, self.button_width, self.button_height)
         
         # Font settings
@@ -266,9 +266,9 @@ class CoinFlipper:
     def draw_coin(self):
     #Draw the coin's current side on the screen if it's been flipped.""
         if self.current_side:
-            self.screen.blit(self.coin_images[self.current_side], (self.width - 200, 230))
+            self.screen.blit(self.coin_images[self.current_side], (110, 279))
             # Draw the text result under the coin
-            self.draw_text(self.current_side.capitalize(), self.width - 150, 350, self.result_font)
+            self.draw_text(self.current_side.capitalize(), 145, 365, self.result_font)
 
     def handle_event(self, event):
         """Handle the coin flip event on button click."""
@@ -300,9 +300,9 @@ class JengaTower:
 
         self.area_color = self.TRANSPARENT_BEIGE
         self.area_rect_width = 250
-        self.area_rect_height = 300
+        self.area_rect_height = 175
         self.area_rect_x = 25
-        self.area_rect_y = 50
+        self.area_rect_y = 25
         self.area_rect =pygame.Rect(self.area_rect_x, self.area_rect_y, self.area_rect_width, self.area_rect_height)
 
         self.font = pygame.font.SysFont(None, 24)
@@ -331,10 +331,10 @@ class JengaTower:
         self.draw_area()
         self.draw_button()
         lines = self.results.split('\n')
-        y_offset = self.area_rect_y + self.button_height + 10
+        y_offset = self.area_rect_y + self.button_height + 30
         for line in lines:
             text = self.font.render(line, True, self.WHITE)
-            self.screen.blit(text, (self.area_rect_x + 10, y_offset))
+            self.screen.blit(text, (self.area_rect_x + 30, y_offset))
             y_offset += 20
 
 
@@ -362,6 +362,29 @@ class JengaTower:
             if self.button_rect.collidepoint(pygame.mouse.get_pos()):
                 self.roll_jenga_dice()
 
+def roll_extra_die():
+    return random.randint(1, 6)
+
+def draw_extra_die(screen, dice_images, dice_index, x, y):
+    screen.blit(dice_images[dice_index], (x,y))
+
+def draw_extra_die_button(screen, button_rect, font):
+    mouse_pos = pygame.mouse.get_pos()
+    if button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, (0, 0, 0), button_rect)
+    else:
+        pygame.draw.rect(screen, (166, 147, 126), button_rect)
+    text_obj = font.render("Roll Extra Die", True, (255, 255, 255))
+    text_rect = text_obj.get_rect(center=button_rect.center)
+    screen.blit(text_obj, text_rect)
+
+
+def handle_extra_die_click (event, button_rect):
+    if event.type == pygame.MOUSEBUTTONDOWN:
+        mouse_pos = pygame.mouse.get_pos()
+        if button_rect.collidepoint(pygame.mouse.get_pos()):
+            return True   
+    return False
 
 # Main game loop
 def main():
@@ -390,11 +413,22 @@ def main():
 
     round_counter = 0
     round_font = pygame.font.SysFont(None, 36)
+    extra_die_font =pygame.font.SysFont(None, 24)
     
 
     def draw_round_counter():
         round_text = round_font.render(f"Week: {round_counter}", True, (255, 255, 255))
         screen.blit(round_text, (width - 150, 30))
+
+    #extra die setup
+    extra_dice_images = [
+        pygame.transform.scale(pygame.image.load(os.path.join("assets/dice_assets", f"white{i}.png")), (50, 50))
+        for i in range(1, 6 + 1)
+    ]
+    extra_die_index = 0
+    extra_die_x = 750
+    extra_die_y = 150
+    extra_die_button_rect = pygame.Rect(extra_die_x - 50, extra_die_y - 50, 150, 40)
 
     # Main game loop
     running = True
@@ -409,11 +443,16 @@ def main():
         card_picker.draw_button()
         card_picker.draw_message()
 
+        #Draw coin
         coin_flipper.draw_button()
         coin_flipper.draw_coin()
 
+        #draw jenga setup
         jenga_tower.draw()
-        
+
+        #draw extra die
+        draw_extra_die(screen, extra_dice_images, extra_die_index, extra_die_x, extra_die_y)
+        draw_extra_die_button(screen, extra_die_button_rect, extra_die_font)
 
         # Handle events for dice and card picking
         for event in pygame.event.get():
@@ -425,6 +464,8 @@ def main():
                 pass
             coin_flipper.handle_event(event)
             jenga_tower.handle_event(event)
+            if handle_extra_die_click(event, extra_die_button_rect):
+                extra_die_index = roll_extra_die() -1
             
         card_picker.draw_message()
 
